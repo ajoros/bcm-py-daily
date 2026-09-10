@@ -112,6 +112,20 @@ Fortran.
 | recharge `rch` (mm) | 0.176 | +0.101 | 1.000 |
 | runoff `run` (mm) | 0.177 | −0.104 | 1.000 |
 
+### Runtime
+
+Same Mokelumne 9-day wet window, same Windows workstation, one run each.
+Wall time includes daily ASCII map I/O. Not a formal benchmark.
+
+| | Wall time | Relative |
+|---|---:|---|
+| Fortran (gfortran `-O2`, same source the port follows) | 103 s | 1.0× |
+| Python (this port, NumPy) | 45 s | **2.3× faster** |
+
+![Wall time Fortran vs Python](docs/validation/runtime.png)
+
+Fortran is a per-cell loop. Python is vectorized NumPy over the grid.
+
 ![Fortran vs Python snowpack (1:1)](docs/validation/pck_scatter.png)
 
 *Each point is one grid cell on one day. Dashed line is exact agreement.*
