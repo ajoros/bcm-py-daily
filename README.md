@@ -122,11 +122,9 @@ Wall time includes daily ASCII map I/O. Not a formal benchmark.
 | Fortran (gfortran `-O2`, same source the port follows) | 103 s | 1.0× |
 | Python (this port, NumPy) | 45 s | **2.3× faster** |
 
-![Wall time Fortran vs Python](docs/validation/runtime.png)
-
 Fortran is a per-cell loop. Python is vectorized NumPy over the grid.
 
-![Fortran vs Python snowpack (1:1)](docs/validation/pck_scatter.png)
+<img src="docs/validation/pck_scatter.png" alt="Fortran vs Python snowpack (1:1)" width="360">
 
 *Each point is one grid cell on one day. Dashed line is exact agreement.*
 
