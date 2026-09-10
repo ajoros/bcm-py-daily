@@ -13,6 +13,7 @@ authors:
   - family-names: Stern
     given-names: Michelle
     affiliation: Delta Stewardship Council
+    website: https://github.com/michelleastern
 license: MIT
 copyright: Copyright (c) 2026 Andrew Joros, Desert Research Institute
 repository-code: https://github.com/ajoros/bcm-py-daily

@@ -67,33 +67,77 @@ Run `BCM_Dailyv81_python.py` after pointing it at your own BCM Daily inputs.
 ## Agreement with Fortran
 
 The port was checked **cell-by-cell** against the Fortran BCM Daily
-**source** on the same climate, soils, and control file. The comparison
-includes a **wet** winter window (real snowpack, wet soils), not only a
-dry spin-up.
+**source** on the same climate, soils, and control file.
 
-About 690,000 valid cell-days. Climate and snowfall match exactly. Snowpack,
-melt, and liquid water in the pack match at map-write precision. Domain water
-balance closes at the same floor.
+### Comparison region
+
+The test domain is the **Mokelumne River watershed** on the western slope
+of the Sierra Nevada, California. It is a 270 m grid (Teale Albers) with
+about 177,000 land cells: Central Valley floor on the west, foothills in
+the middle, and the high Sierra (deep snow) on the east. Both models used
+the same daily precipitation and temperature, the same soils / geology /
+vegetation, and the same late-December snow and soil **antecedent** maps.
+
+The window is a **wet** winter sequence: 26 December 1996 through
+3 January 1997 (1996 day-of-year 361–366 and 1997 day-of-year 1–3).
+That is 9 days × ~77,000 valid cells per day ≈ **690,000 cell-days**.
+Mean pack in the window is about 133 mm; soils are wet enough that
+recharge and runoff are active. A dry spin-up would hide snow and
+runoff errors.
+
+![Comparison domain: Mokelumne elevation and snowpack](docs/validation/domain_pack.png)
+
+*Left: elevation. Right: nine-day mean snowpack from the Fortran source.*
+
+### Metrics (Python − Fortran)
+
+**0.000** means identical on the written maps. **~0.005 mm** is the usual
+map-write floor (`%.2f`), not a process miss. `%match` is the share of
+cells within 0.01 mm (or 0.01 of a fraction). Bias is Python minus
+Fortran.
+
+| Variable | RMSE | Bias | Max \|diff\| | %match | Corr |
+|---|---:|---:|---:|---:|---:|
+| tmin / tmax (°C) | **0.000** | 0.000 | 0.00 | 100% | 1.000 |
+| precip (mm) | **0.000** | 0.000 | 0.00 | 100% | 1.000 |
+| snowfall `snw` (mm) | **0.000** | 0.000 | 0.00 | 100% | 1.000 |
+| sublimation `sbl` (mm) | **0.001** | 0.000 | 0.20 | 100% | 1.000 |
+| snowmelt `mlt` (mm) | **0.003** | 0.000 | 0.20 | 98% | 1.000 |
+| pack liquid `mwt` (mm) | **0.003** | 0.000 | 0.03 | 97% | 1.000 |
+| snowpack `pck` (mm) | **0.005** | 0.000 | 0.08 | 96% | 1.000 |
+| PET `pet` (mm) | **0.005** | +0.002 | 0.02 | 81% | 1.000 |
+| excess `exc` (mm) | **0.019** | −0.004 | 0.18 | 79% | 1.000 |
+| CWD `cwd` (mm) | **0.021** | −0.004 | 0.17 | 60% | 0.996 |
+| AET `aet` (mm) | **0.022** | +0.006 | 0.18 | 70% | 0.973 |
+| soil storage `str` (mm) | **0.023** | −0.004 | 0.21 | 76% | 1.000 |
+| recharge `rch` (mm) | 0.176 | +0.101 | 0.30 | 53% | 1.000 |
+| runoff `run` (mm) | 0.177 | −0.104 | 0.46 | 65% | 1.000 |
 
 ![Fortran vs Python snowpack (1:1)](docs/validation/pck_scatter.png)
 
 *Each point is one grid cell on one day. Dashed line is exact agreement.*
 
-| Check | RMSE vs Fortran |
-|---|---|
-| Precipitation, temperature, snowfall | 0 |
-| Snowpack / melt / pack liquid | 0.005 / 0.003 / 0.003 mm |
-| PET, AET, CWD, soil storage | ~0.02 mm |
-
-**0.000** means identical on the written maps. **~0.005 mm** is the usual
-map-write floor (`%.2f`), not a process miss.
-
 ![RMSE by variable](docs/validation/rmse_bars.png)
 
-Two output conventions (not physics) can differ from a given Fortran
-build: how the rain/snow fraction map is labeled, and whether an optional
-recharge/runoff control-file switch is applied. Turn that switch off in
-the CTL if you want the closest match to source that does not use it.
+### Spatial comparison
+
+Nine-day means. Fortran and Python snow fields are visually the same;
+the difference maps sit at write noise.
+
+![Spatial snowpack and melt](docs/validation/spatial_snow.png)
+
+Recharge and runoff maps match in pattern. The small, widespread
+difference (about +0.3 mm recharge / −0.3 mm runoff) is an optional
+control-file **recharge/runoff switch** that Python applies and this
+Fortran source does not. Turn that switch off in the CTL for a tighter
+match. It is not a snow-physics miss.
+
+![Spatial recharge and runoff](docs/validation/spatial_flow.png)
+
+Rain/snow fraction maps use opposite labels (Python writes snow
+fraction; this Fortran source writes rain fraction). Invert RMSE is
+0.0015 (100% within 0.01). That is a write convention, not a water-balance
+error.
 
 This comparison is against the Fortran **source** the port was written
 from, not a claim of bit-identity with every compiled BCM executable.
@@ -253,7 +297,8 @@ pandas.
 
 - **This Python software:** Andrew Joros, Assistant Research Scientist,
   Desert Research Institute.
-- **Development:** Michelle Stern, Delta Stewardship Council.
+- **Development:** [Michelle Stern](https://github.com/michelleastern),
+  Delta Stewardship Council.
 - **BCM method:** U.S. Geological Survey. See the
   [USGS BCM page](https://www.usgs.gov/centers/california-water-science-center/science/basin-characterization-model-bcm)
   and Flint, L.E., Flint, A.L., and Stern, M.A., 2021, *The basin
