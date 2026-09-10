@@ -64,6 +64,61 @@ Run `BCM_Dailyv81_python.py` after pointing it at your own BCM Daily inputs.
 
 ---
 
+## How it works
+
+One setup pass, then the same water-balance chain on every grid cell each
+day. Climate is precipitation, Tmin, and Tmax. Everything else is
+computed.
+
+```mermaid
+flowchart TD
+  start[Set BCM_INDIR, BCM_CTL, BCM_OUT_DIR] --> ctl[Parse control file]
+  ctl --> static[Load static maps: DEM, soils, geology, veg, snow factors]
+  static --> terr[Read terrain file: lat, lon, elevation, sky view]
+  terr --> idw[Precompute monthly atmosphere by IDW]
+  idw --> soil[Soil capacities from depth, WP, FC, porosity]
+  soil --> prior{Antecedent on?}
+  prior -->|no| init[Zero snow; initialize soil water]
+  prior -->|yes| load[Read prior pack, liquid, ATI, HDI, storage, LAI]
+  init --> loop
+  load --> loop
+
+  subgraph daily [Each day in the CTL window]
+    loop[Read ppt, tmn, tmx] --> pet[Solar radiation and PET]
+    pet --> snow[Snow-17: rain/snow split, pack, melt, sublimation]
+    snow --> wb[Soil water balance]
+    wb --> out[Write daily maps and basin summary]
+    out --> carry[Carry pack and storage to the next day]
+  end
+
+  carry --> more{More days?}
+  more -->|yes| loop
+  more -->|no| done[Done]
+```
+
+**Once at start.** The CTL sets dates, print flags, lookup tables, and
+whether to restart from yesterday’s state. Static layers and the terrain
+file define the grid. Monthly precipitable water, turbidity, and albedo
+are interpolated to each cell. Soil field capacity, wilting point, and
+porosity are depths in mm. Bedrock Ks comes from the geology table.
+
+**Each day.**
+
+1. **Climate** — precipitation, Tmin, Tmax (same files Fortran uses).
+2. **PET** — hourly solar with topographic shading and cloudiness;
+   Priestley–Taylor PET for the day.
+3. **Snow** — rain vs snow from temperature vs the accumulation map;
+   SNOW-17 pack, heat deficit, liquid tank, melt, sublimation.
+4. **Soil** — storage gets rain + melt − snow. Added water goes to AET,
+   then recharge (capped by bedrock Ks) or runoff. CWD is PET − AET.
+5. **Write** — maps whose CTL flags are on, plus state maps for the next
+   day, and one basin-average line in the text summary.
+
+State that carries forward: snowpack, pack liquid, ATI, HDI, soil
+storage, LAI.
+
+---
+
 ## Agreement with Fortran
 
 The port was checked **cell-by-cell** against the Fortran BCM Daily
