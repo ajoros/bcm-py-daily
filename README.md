@@ -66,10 +66,10 @@ Run `BCM_Dailyv81_python.py` after pointing it at your own BCM Daily inputs.
 
 ## Agreement with Fortran
 
-Andrew Joros and Michelle Stern checked the port **cell-by-cell** against
-the Fortran BCM Daily **source** on the same climate, soils, and control
-file. The comparison includes a **wet** winter window (real snowpack, wet
-soils), not only a dry spin-up.
+The port was checked **cell-by-cell** against the Fortran BCM Daily
+**source** on the same climate, soils, and control file. The comparison
+includes a **wet** winter window (real snowpack, wet soils), not only a
+dry spin-up.
 
 About 690,000 valid cell-days. Climate and snowfall match exactly. Snowpack,
 melt, and liquid water in the pack match at map-write precision. Domain water
