@@ -1,10 +1,10 @@
 # bcm-py-daily
 
 **Andrew Joros** · Assistant Research Scientist · Desert Research Institute
-with **Michelle Stern** · Delta Stewardship Council
+with **Michelle Stern** · Senior Environmental Scientist · Delta Stewardship Council
 
-Independent **daily** Python implementation of the USGS Basin Characterization
-Model (BCM). Public research software.
+Independent **daily** Python implementation of the published monthly USGS Basin Characterization
+Model (BCMv8). Public research software.
 
 **This is not a USGS product and is not endorsed by the USGS.**
 
@@ -12,15 +12,15 @@ Model (BCM). Public research software.
 
 ## The Basin Characterization Model
 
-The Basin Characterization Model (BCM) is a simple grid-based model that
+The Basin Characterization Model (BCM) is a grid-based model that
 calculates the water balance for any time step or spatial scale by using
-climate inputs, precipitation, minimum and maximum air temperature. The BCM
+climate inputs of precipitation, minimum and maximum air temperature. The BCM
 can translate fine-scale maps of climate trends and projections into the
 hydrologic consequences, to permit evaluation of the impacts to water
 availability at regional, watershed, and landscape scales, as caused by
 changes in temperature and precipitation.
 
-Scientists divide the landscape into grid cells, each of which uses specific
+Users can divide the landscape into grid cells, each of which uses specific
 climate data inputs, such as precipitation and air temperature, to solve the
 water balance for each cell. Model calculations include potential
 evapotranspiration, calculated from solar radiation with topographic shading
@@ -28,11 +28,11 @@ and cloudiness; snow, as it accumulates and melts; and excess water moving
 through the soil profile, which is used to calculate actual
 evapotranspiration and climatic water deficit—the difference between
 potential and actual evapotranspiration. Depending on soil properties and
-the permeability of underlying bedrock, surface water can be classified for
-each cell as either recharge or runoff. Post-processing calculations are
+the permeability of underlying bedrock, surface water is classified for
+each cell as either recharge or runoff. Post-processing calculations can be 
 made to estimate baseflow, streamflow, and potential recharge to the
-groundwater system for watersheds. The model output can define the water
-balance for any size polygon representing regions or watersheds, or can
+groundwater system for watersheds. The model output text file can summarize the water
+balance for any grid cell or polygon representing regions or watersheds. Model output grids
 define the distribution of the various water-balance variables across the
 landscape.
 
@@ -53,8 +53,8 @@ water-balance port in Python.
 | Role | |
 |---|---|
 | **Software developer** | Andrew Joros, Assistant Research Scientist, Desert Research Institute |
-| **Development** | Michelle Stern, Delta Stewardship Council |
-| **BCM method** | U.S. Geological Survey (Flint, Stern, and colleagues) |
+| **Developer** | Michelle Stern, Delta Stewardship Council |
+| **BCM method** | U.S. Geological Survey (Flint, Flint, and Stern) |
 
 The Fortran BCM remains the USGS authors’ model. This repository is DRI /
 collaborator software that runs that method in Python. It is not an official
@@ -134,12 +134,12 @@ porosity are depths in mm. Bedrock Ks comes from the geology table.
    Priestley–Taylor PET for the day.
 3. **Snow** — rain vs snow from temperature vs the accumulation map;
    SNOW-17 pack, heat deficit, liquid tank, melt, sublimation.
-4. **Soil** — storage gets rain + melt − snow. Added water goes to AET,
+4. **Soil** — storage gets rain + melt − snow. Excess water goes to AET,
    then recharge (capped by bedrock Ks) or runoff. CWD is PET − AET.
 5. **Write** — maps whose CTL flags are on, plus state maps for the next
    day, and one basin-average line in the text summary.
 
-State that carries forward: snowpack, pack liquid, ATI, HDI, soil
+States that carry forward: snowpack, pack liquid, ATI, HDI, soil
 storage, LAI.
 
 ---
@@ -238,8 +238,10 @@ from, not a claim of bit-identity with every compiled BCM executable.
 ## Installation
 
 You need **Python 3.10+** and a BCM Daily input folder (control file,
-static layers, daily climate). This repo does not ship a domain. You do
-not need Fortran, the Windows BCM executable, or conda.
+static input layers, daily climate grids). Climate and input grids must
+match the extent, projection, and grid cell resolution of the DEM (Digital 
+Elevation Model) exactly. This repo does not ship a domain. You do not need 
+Fortran, the Windows BCM executable, or conda.
 
 ```bash
 git clone https://github.com/ajoros/bcm-py-daily.git
@@ -305,7 +307,7 @@ grid** as the DEM.
   tables, antecedent on/off
 - Static maps: topography, soils, geology, vegetation, and the snow /
   radiation layers named in the CTL
-- Terrain file named in the CTL (lat, lon, elevation, and related fields)
+- Terrain input file named in the CTL (lat, lon, elevation, and related fields)
 - Daily climate for every day in the window:
 
 | File | Meaning |
@@ -318,9 +320,8 @@ grid** as the DEM.
 cross 1 January.
 
 **If antecedent is on** in the CTL, also provide the previous day’s
-state maps in the same folder (snowpack, soil storage, and the other
-state layers BCM Daily writes). If antecedent is off, the run starts
-with no snow and initialized soil water.
+state maps in the same folder (snowpack, soil storage, ATI, HDI, LAI). 
+If antecedent is off, the run starts with no snow and initialized soil water.
 
 ### Outputs
 
@@ -344,7 +345,7 @@ Maps use the same `varYYYY_DDD.asc` naming as the climate inputs.
 
 ### Checklist
 
-1. Put a BCM Daily CTL and matching grids in one folder.
+1. Put a BCM Daily CTL and input grids in one folder.
 2. Set the CTL dates to days you have precip and temperature for.
 3. Turn on the map flags you want; set antecedent on or off.
 4. Activate the venv, set the three path variables, run the script.
@@ -357,7 +358,7 @@ needs several GB of RAM.
 
 | Symptom | Likely cause |
 |---|---|
-| Control file not found | `BCM_INDIR` or `BCM_CTL` is wrong |
+| Control file not found | `BCM_INDIR` or `BCM_CTL` is wrong or has tabs |
 | A climate file not found | CTL window includes a day you do not have, or `DDD` is not three digits |
 | A state file not found at start | Antecedent is on, but the previous day’s maps are missing |
 | Array shape error | One layer is not the same `nrows` × `ncols` as the DEM |
@@ -388,7 +389,7 @@ pandas.
 
 - **This Python software:** Andrew Joros, Assistant Research Scientist,
   Desert Research Institute.
-- **Development:** [Michelle Stern](https://github.com/michelleastern),
+- **Developer:** [Michelle Stern](https://github.com/michelleastern), Senior Environmental Scientist,
   Delta Stewardship Council.
 - **BCM method:** U.S. Geological Survey. See the
   [USGS BCM page](https://www.usgs.gov/centers/california-water-science-center/science/basin-characterization-model-bcm)
