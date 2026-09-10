@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: >-
+  Cite this software for the Python port. Cite Flint, Flint, and Stern
+  (2021) and the USGS BCM page for the Basin Characterization Model.
+title: bcm-py-daily
+abstract: >-
+  Independent daily Python implementation of the USGS Basin
+  Characterization Model (BCM). Not a USGS product.
+authors:
+  - family-names: Joros
+    given-names: Andrew
+    affiliation: Desert Research Institute
+  - family-names: Stern
+    given-names: Michelle
+    affiliation: Delta Stewardship Council
+license: MIT
+copyright: Copyright (c) 2026 Andrew Joros, Desert Research Institute
+repository-code: https://github.com/ajoros/bcm-py-daily
+url: https://github.com/ajoros/bcm-py-daily
+keywords:
+  - hydrology
+  - water-balance
+  - snow
+  - python
+  - BCM
+references:
+  - type: report
+    title: The basin characterization model—A regional water balance software package
+    authors:
+      - family-names: Flint
+        given-names: Lorraine E.
+      - family-names: Flint
+        given-names: Alan L.
+      - family-names: Stern
+        given-names: Michelle A.
+    year: 2021
+    publisher:
+      name: U.S. Geological Survey
+    identifiers:
+      - type: url
+        value: https://www.usgs.gov/centers/california-water-science-center/science/basin-characterization-model-bcm
