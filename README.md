@@ -94,6 +94,31 @@ flowchart TD
   carry --> more{More days?}
   more -->|yes| loop
   more -->|no| done[Done]
+
+  classDef sand fill:#e8dcc8,stroke:#6b5344,color:#2c2416
+  classDef rock fill:#c4b59a,stroke:#5c4a32,color:#2c2416
+  classDef soil fill:#c4a574,stroke:#5c4033,color:#2c2416
+  classDef sage fill:#9aaa78,stroke:#3d4a32,color:#1a1f14
+  classDef ochre fill:#d4a017,stroke:#6b4f1d,color:#2c2416
+  classDef rain fill:#7a9e9a,stroke:#2f4a48,color:#f4efe6
+  classDef sun fill:#e0b35a,stroke:#8a5a20,color:#2c2416
+  classDef snowc fill:#c5d0d4,stroke:#4a5c62,color:#1a2428
+  classDef moss fill:#6b8f71,stroke:#2f4a34,color:#f4efe6
+  classDef clay fill:#c17f59,stroke:#5c3d2e,color:#2c2416
+  classDef bark fill:#5c5346,stroke:#2c2822,color:#f4efe6
+
+  class start,ctl sand
+  class static,terr rock
+  class idw sage
+  class soil,init,load soil
+  class prior,more ochre
+  class loop rain
+  class pet sun
+  class snow snowc
+  class wb moss
+  class out,carry clay
+  class done bark
+  style daily fill:#f3efe6,stroke:#8a7355,color:#3d3428
 ```
 
 **Once at start.** The CTL sets dates, print flags, lookup tables, and
