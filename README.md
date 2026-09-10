@@ -95,22 +95,22 @@ runoff errors.
 map-write floor (`%.2f`), not a process miss. Bias is Python minus
 Fortran.
 
-| Variable | RMSE | Bias | Corr |
-|---|---:|---:|---:|
-| tmin / tmax (°C) | **0.000** | 0.000 | 1.000 |
-| precip (mm) | **0.000** | 0.000 | 1.000 |
-| snowfall `snw` (mm) | **0.000** | 0.000 | 1.000 |
-| sublimation `sbl` (mm) | **0.001** | 0.000 | 1.000 |
-| snowmelt `mlt` (mm) | **0.003** | 0.000 | 1.000 |
-| pack liquid `mwt` (mm) | **0.003** | 0.000 | 1.000 |
-| snowpack `pck` (mm) | **0.005** | 0.000 | 1.000 |
-| PET `pet` (mm) | **0.005** | +0.002 | 1.000 |
-| excess `exc` (mm) | **0.019** | −0.004 | 1.000 |
-| CWD `cwd` (mm) | **0.021** | −0.004 | 0.996 |
-| AET `aet` (mm) | **0.022** | +0.006 | 0.973 |
-| soil storage `str` (mm) | **0.023** | −0.004 | 1.000 |
-| recharge `rch` (mm) | 0.176 | +0.101 | 1.000 |
-| runoff `run` (mm) | 0.177 | −0.104 | 1.000 |
+| Variable | RMSE | Bias |
+|---|---:|---:|
+| tmin / tmax (°C) | **0.000** | 0.000 |
+| precip (mm) | **0.000** | 0.000 |
+| snowfall `snw` (mm) | **0.000** | 0.000 |
+| sublimation `sbl` (mm) | **0.001** | 0.000 |
+| snowmelt `mlt` (mm) | **0.003** | 0.000 |
+| pack liquid `mwt` (mm) | **0.003** | 0.000 |
+| snowpack `pck` (mm) | **0.005** | 0.000 |
+| PET `pet` (mm) | **0.005** | +0.002 |
+| excess `exc` (mm) | **0.019** | −0.004 |
+| CWD `cwd` (mm) | **0.021** | −0.004 |
+| AET `aet` (mm) | **0.022** | +0.006 |
+| soil storage `str` (mm) | **0.023** | −0.004 |
+| recharge `rch` (mm) | 0.176 | +0.101 |
+| runoff `run` (mm) | 0.177 | −0.104 |
 
 ### Runtime
 
