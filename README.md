@@ -89,6 +89,18 @@ runoff errors.
 
 *Left: elevation. Right: nine-day mean snowpack from the Fortran source.*
 
+### Runtime
+
+Same Mokelumne 9-day wet window, same Windows workstation, one run each.
+Wall time includes daily ASCII map I/O. Not a formal benchmark.
+
+| | Wall time | Relative |
+|---|---:|---|
+| Fortran (gfortran `-O2`, same source the port follows) | 103 s | 1.0× |
+| Python (this port, NumPy) | 45 s | **2.3× faster** |
+
+Fortran is a per-cell loop. Python is vectorized NumPy over the grid.
+
 ### Metrics (Python − Fortran)
 
 **0.000** means identical on the written maps. **~0.005 mm** is the usual
@@ -111,18 +123,6 @@ Fortran.
 | soil storage `str` (mm) | **0.023** | −0.004 |
 | recharge `rch` (mm) | 0.176 | +0.101 |
 | runoff `run` (mm) | 0.177 | −0.104 |
-
-### Runtime
-
-Same Mokelumne 9-day wet window, same Windows workstation, one run each.
-Wall time includes daily ASCII map I/O. Not a formal benchmark.
-
-| | Wall time | Relative |
-|---|---:|---|
-| Fortran (gfortran `-O2`, same source the port follows) | 103 s | 1.0× |
-| Python (this port, NumPy) | 45 s | **2.3× faster** |
-
-Fortran is a per-cell loop. Python is vectorized NumPy over the grid.
 
 <img src="docs/validation/pck_scatter.png" alt="Fortran vs Python snowpack (1:1)" width="360">
 
