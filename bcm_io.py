@@ -321,6 +321,38 @@ def read_inp(path: str, nrows: int, ncols: int) -> dict:
     }
 
 
+def write_inp(path: str, terrain: dict) -> None:
+    """Write a BCM Daily terrain .inp (inverse of read_inp).
+
+    45 tokens per cell plus a trailing 0. ridge[:,:,0] is not written.
+    """
+    elev = terrain["elev"]
+    nrows, ncols = elev.shape
+    site = terrain.get("site")
+    east = terrain["east"]
+    north = terrain["north"]
+    lat = terrain["lat"]
+    lon = terrain["lon"]
+    sl = terrain["sl"]
+    asp = terrain["asp"]
+    sky = terrain["sky"]
+    ridge = terrain["ridge"]
+    n = 0
+    with open(path, "w", encoding="latin-1", newline="\n") as f:
+        for r in range(nrows):
+            for c in range(ncols):
+                n += 1
+                sid = int(site[r, c]) if site is not None else n
+                angs = " ".join(f"{float(ridge[r, c, k]):g}" for k in range(1, 37))
+                f.write(
+                    f"{sid:12d}{east[r, c]:12.1f}{north[r, c]:12.1f}"
+                    f"{lat[r, c]:12.4f}{lon[r, c]:12.4f}"
+                    f"{sl[r, c]:9.0f}{asp[r, c]:9.0f}"
+                    f"{elev[r, c]:9.1f}{sky[r, c]:10.3f} "
+                    f"{angs} 0\n"
+                )
+
+
 # ---------------------------------------------------------------------------
 # File-naming helper (matches Fortran FORMAT 911/912/913 logic)
 # ---------------------------------------------------------------------------

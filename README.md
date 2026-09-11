@@ -74,7 +74,7 @@ computed.
 flowchart TD
   start[Set BCM_INDIR, BCM_CTL, BCM_OUT_DIR] --> ctl[Parse control file]
   ctl --> static[Load static maps: DEM, soils, geology, veg, snow factors]
-  static --> terr[Read existing terrain .inp]
+  static --> terr[Terrain .inp: read or build from DEM]
   terr --> idw[Precompute monthly atmosphere by IDW]
   idw --> soil[Soil capacities from depth, WP, FC, porosity]
   soil --> prior{Antecedent on?}
@@ -123,11 +123,11 @@ flowchart TD
 
 **Once at start.** The CTL sets dates, print flags, lookup tables, and
 whether to restart from yesterday’s state. Static layers and the terrain
-file define the grid. This port **reads** that terrain file; it does not
-build it. It is the same `.inp` Fortran BCM Daily uses. Existing domains
-already have it. A new domain from a DEM still needs a separate builder
-(not in this repository yet). Monthly precipitable water, turbidity, and
-albedo are interpolated to each cell. Soil field capacity, wilting
+file define the grid. The terrain `.inp` is lat, lon, elevation, slope,
+aspect, sky-view, and 36 horizon angles. Existing domains can keep the
+file they already have. A new domain builds it in Python from the DEM
+(`bcm_terrain.py`) — no Fortran. Monthly precipitable water, turbidity,
+and albedo are interpolated to each cell. Soil field capacity, wilting
 point, and porosity are depths in mm. Bedrock Ks comes from the geology
 table.
 
@@ -242,11 +242,12 @@ from, not a claim of bit-identity with every compiled BCM executable.
 ## Installation
 
 You need **Python 3.10+** and a BCM Daily input folder (control file,
-static input layers, daily climate grids, and the terrain `.inp`).
+static input layers, daily climate grids, and a terrain `.inp`).
 Climate and input grids must match the extent, projection, and grid
-cell resolution of the DEM (Digital Elevation Model) exactly. This
-repo does not ship a domain and does not build the `.inp` from a DEM.
-You do not need Fortran, the Windows BCM executable, or conda.
+cell resolution of the DEM exactly. This repo does not ship a domain.
+If you do not already have a terrain `.inp`, build it from the DEM
+with `bcm_terrain.py`. You do not need Fortran, the Windows BCM
+executable, or conda.
 
 ```bash
 git clone https://github.com/ajoros/bcm-py-daily.git
@@ -299,6 +300,34 @@ Always set `BCM_INDIR` and `BCM_OUT_DIR`. If `BCM_CTL` is omitted, the
 script looks for `BCM_Dailyv81.ctl` inside `BCM_INDIR`. Output folders
 are created if missing.
 
+### Build the terrain `.inp`
+
+The daily model needs one terrain file (lat, lon, slope, aspect,
+sky-view, 36 horizon angles). If you do not already have that file,
+build it from the project DEM:
+
+```bash
+python bcm_terrain.py dem.asc -o terrain.inp \
+  --west -121.67 --east -119.70 --south 38.03 --north 38.70 \
+  --left -145265.8 --right 26184.2 --top 77206.7 --bottom 1876.7
+```
+
+`--west` / `--east` / `--south` / `--north` are geographic corners.
+`--left` / `--right` / `--top` / `--bottom` are the same box in the
+DEM’s projected units (cell size and origin come from the DEM header).
+`--radius` is the horizon search distance in those units (default
+75000). A DEM with a buffer around the domain is better for sky-view.
+
+Or pass the eight numbers in a text file (`west east north south left
+right top bottom`, one value per line or the first token on each line):
+
+```bash
+python bcm_terrain.py dem.asc -o terrain.inp --box-file box.txt
+```
+
+Put the output name in the CTL `inpfile` line. Self-check:
+`python bcm_terrain.py --check`.
+
 ### Inputs
 
 Use the same kind of folder you would use for a Fortran BCM Daily run.
@@ -312,9 +341,9 @@ grid** as the DEM.
   tables, antecedent on/off
 - Static maps: topography, soils, geology, vegetation, and the snow /
   radiation layers named in the CTL
-- Terrain `.inp` named in the CTL — same file Fortran BCM Daily uses
-  (lat, lon, elevation, sky view, horizon angles). This port does not
-  create it from a DEM.
+- Terrain `.inp` named in the CTL (lat, lon, elevation, sky-view,
+  horizon angles). Build it with `bcm_terrain.py` if you do not
+  already have one.
 - Daily climate for every day in the window:
 
 | File | Meaning |
@@ -352,8 +381,8 @@ Maps use the same `varYYYY_DDD.asc` naming as the climate inputs.
 
 ### Checklist
 
-1. Put a BCM Daily CTL, input grids, and the terrain `.inp` in one
-   folder.
+1. Put a BCM Daily CTL and input grids in one folder. Build the
+   terrain `.inp` from the DEM if you do not already have it.
 2. Set the CTL dates to days you have precip and temperature for.
 3. Turn on the map flags you want; set antecedent on or off.
 4. Activate the venv, set the three path variables, run the script.
@@ -370,6 +399,7 @@ needs several GB of RAM.
 | A climate file not found | CTL window includes a day you do not have, or `DDD` is not three digits |
 | A state file not found at start | Antecedent is on, but the previous day’s maps are missing |
 | Array shape error | One layer is not the same `nrows` × `ncols` as the DEM |
+| `bcm_terrain.py` missing box | Need `--west`…`--bottom` or `--box-file` |
 | `numpy` import error | Virtual environment not active |
 
 ---
@@ -386,7 +416,8 @@ standard library plus NumPy.
 
 **You provide (not installed by pip):** ASCII grids and a CTL in the BCM
 Daily layout. Same class of climate inputs: precipitation, minimum and
-maximum air temperature, plus soils, geology, and topography.
+maximum air temperature, plus soils, geology, and topography. The
+terrain `.inp` can be built from the DEM with `bcm_terrain.py`.
 
 **You do not need:** a compiled BCM executable, a Fortran compiler, or
 pandas.
