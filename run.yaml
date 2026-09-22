@@ -1,0 +1,74 @@
+# BCM Daily run file. Replaces BCM_Dailyv81.ctl.
+# Put your filename on the left. The note on the right says what that grid is.
+# Every map must match the DEM (same rows, columns, and cell size).
+# Copy this file per watershed. Do not rename the keys.
+
+start: 2010-01-01          # first day of the run (YYYY-MM-DD)
+end: 2010-01-09            # last day of the run
+antecedent: false          # true only if prior snow and soil maps are in the domain folder
+initial_soil: 0.9          # starting soil water as a fraction of (field capacity - wilting point)
+timezone: -120             # standard meridian, degrees longitude. California is -120
+domain: ./domain           # folder that holds the grids named below
+climate: ./domain          # folder for ppt, tmn, tmx. Change to ./climate if those files are in a different directory
+output: ./out              # folder for the daily maps and the basin summary
+outfile: basin.out         # basin summary table
+
+# Required grids. Replace only the filename.
+layers:
+  dem: dem.asc                         # elevation, meters
+  soil_depth: soil_depth.asc           # soil depth, meters
+  wilting_point: wilting_point.asc     # wilting point, cm water / cm soil
+  field_capacity: field_capacity.asc   # field capacity, cm water / cm soil
+  porosity: porosity.asc               # porosity, fraction
+  geology: geology.asc                 # geology id, matched to geology.csv
+  vegetation: vegetation.asc           # vegetation type id, matched to vegetation.csv
+  bc_a: bc_a.asc                       # Bristow-Campbell transmissivity A
+  bc_b: bc_b.asc                       # Bristow-Campbell transmissivity B
+  bc_c: bc_c.asc                       # Bristow-Campbell transmissivity C
+  pt_alpha: pt_alpha.asc               # Priestley-Taylor alpha map (PET still uses 1.26)
+  snow_accum: snow_accum.asc           # snow accumulation temperature, degrees C
+  mfmax: mfmax.asc                     # maximum melt factor
+  mfmin: mfmin.asc                     # minimum melt factor
+  basins: basins.asc                   # basin id for the summary table
+  aridity: aridity.asc                 # optional. Same resolution as the DEM. Used only when drydown is on
+  terrain: terrain.inp                 # latitude, longitude, slope, aspect, sky view, horizons
+
+# Daily climate, in the climate folder above, one file per day of the run:
+#   pptYYYY_DDD.asc   precipitation, mm
+#   tmnYYYY_DDD.asc   minimum temperature, degrees C
+#   tmxYYYY_DDD.asc   maximum temperature, degrees C
+# Example for 1 Jan 2010: ppt2010_001.asc, tmn2010_001.asc, tmx2010_001.asc
+# Potential evapotranspiration is calculated. Do not supply a pet grid.
+
+# Switches. Value on the left, what it does on the right.
+flags:
+  rch_run: off            # off, or mm/day moved from runoff into recharge after bedrock K has capped recharge. Mokelumne control file used 0.300
+                          # Change this only during streamflow calibration, or if you have baseflow information.
+  solar: true             # add solar radiation into snowmelt
+  snow: maps              # maps = snow_accum, mfmax, mfmin grids. scalar = the three numbers below
+  snow_accum_temp: 1.5    # degrees C, used only when snow is scalar
+  mfmax: 1.8              # used only when snow is scalar
+  mfmin: 0.1              # used only when snow is scalar
+  maf: 7.0                # Snow-17 monthly adjustment
+  tipm: 0.1               # Snow-17
+  nmf: 0.21               # Snow-17
+  drydown: off            # off, or on. On uses the aridity map: a*exp(b*aridity)+c below wilting point
+  drydown_a: 0.65          # a in that equation
+  drydown_b: -10           # b in that equation
+  drydown_c: 0.05          # c in that equation
+  pt_modified: off         # off, or on. On reduces AET by soil dryness (Flint and Childs 1986)
+  urban: off               # off, or on. On replaces cells of urban_veg with the soil depth and bedrock K below
+  urban_veg: 53            # vegetation id treated as urban
+  urban_soil_depth: 0.1    # meters. 999 keeps the soil-depth map
+  urban_bedrock_k: 0.5     # mm/day. 999 keeps bedrock K from geology.csv
+  rain_fraction: off       # off, or on. On, while it is snowing, scales PET by the fraction of precipitation that is rain
+  sublimation: off         # off uses an equation relating PET and sublimation. on uses a literature constant (1.4-8.5 mm/mon). 
+  sublimation_constant: 1.00   # used only when sublimation is on
+  ingest: off              # off, swe, str, or lai. use data for snow water equivalent (swe), soil moisture status (str), leaf area index (lai)
+  # Number of substitute pairs to ingest (off for v65). Ignored while ingest is off.
+  # Left: file to be replaced. Right: replacement file you supply, same resolution as the DEM.
+  ingest_files:
+    pck2019mar.asc: aso2019mar.asc
+    pck2019apr.asc: aso2019apr.asc
+
+print: [pet, aet, cwd, rch, run, snw, mlt, sbl, pck, str]   # which daily maps to write

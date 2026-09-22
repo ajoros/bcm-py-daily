@@ -1,0 +1,55 @@
+id,ks_mm_day,name
+1,500,alluvium - ash
+2,200,alluvium - channels
+3,500,alluvium - aeolian sand
+4,40,alluvium - glacial till
+5,10,alluvium - desert fill
+6,0.27,alluvium - lake sediments
+7,500,alluvium - landslides
+8,55,alluvium - marshes
+9,2.74,alluvium - mud and salt flats
+10,20,alluvium - older upland soils
+11,0.82,alluvium - playas
+12,200,alluvium - valley fill
+13,100,Carbonates - dolomite
+15,90,Carbonates - limestone
+16,0.27,Carbonates - travertine
+17,1,Chert
+18,20,Conglomerate
+19,0.5,Gabbro
+20,15,Granite
+21,0.6,Granite - granodiorite
+22,40,Granite - mixed
+23,14,Granite - quartz monzonite
+24,27.4,Igneous - diabase
+25,0.27,Igneous - dikes and plugs
+26,2,Metamorphics - gneiss/schist
+27,2,Metamorphics - phyllite
+28,38,Metamorphics - serpentinite
+29,2,Metasediments
+30,1.5,Metavolcanics
+31,0.05,Quartzite
+32,6,Sandstone
+42,0.1,Sandstone - claystone
+43,1,Sandstone - fine
+44,3,Sandstone - shale
+45,0.9,Sandstone - siltstone
+46,2,Sedimentary - coastal belt
+47,2,Sedimentary
+48,0.27,Volcanics - andesites
+49,1,Volcanics - andesites (flows and breccias)
+50,6,Volcanics - ash-flow tuffs
+51,32,Volcanics - basalts
+52,0.27,Volcanics - breccias
+53,6,Volcanics - lava flows
+54,0,No Geology
+55,8,Volcanics - lava flows (Quaternary)
+56,20,Volcanics - pyroclastics
+57,0.5,Volcanics - rhyolites
+58,0,Water
+59,1.2,Sandstone - claystone mï¿½lange
+60,0.3,Sandstone - shale Eocene
+61,0.1,Sandstone - shale lower
+62,0.2,Sandstone - shale upper
+63,15,Volcanics - lava flows Tertiary
+64,200,Sandstone - Santa Margarita

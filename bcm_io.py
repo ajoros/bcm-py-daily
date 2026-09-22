@@ -6,6 +6,7 @@ Provides:
   read_asc(path)         → (header_dict, 2-D numpy array)
   write_asc(path, hdr, arr) → write a 2-D numpy array as an ESRI ASCII grid
   read_inp(path, nrows, ncols) → structured dict of per-cell terrain data
+  write_inp(path, terrain)     → write that dict back as a .inp
 """
 
 from __future__ import annotations
@@ -118,14 +119,13 @@ def parse_ctl(path: str) -> dict:
     cfg["aridityfile"]      = _token(nxt())
     cfg["maskfile"]         = _token(nxt())
     cfg["hourpetfile"]      = _token(nxt())
-    # Fortran: READ header2 (eats climate-dir path), READ ClimateDirFile
-    nxt()                            # eats D:\Mok_BCM_Heggli\... (Fortran header2)
-    cfg["climate_dir_file"] = _token(nxt())  # !----- BELOW use an on-off SWITCH
+    cfg["climate_dir_path"] = _token(nxt())  # other directory for ppt/tmn/tmx
+    cfg["climate_dir_file"] = _token(nxt())  # section banner; keeps the following lines aligned
     # ------- SWITCH lines (one per Fortran READ, numeric tokens extracted) -------
     # NOTE: Fortran eats the first switch line (ClimateDirflag) as another
     # header2 before the switch block, so ClimateDirflag comes from line 39
     # and subsequent flags are in comment order below.
-    cfg["climate_dir_flag"] = int(_n1(nxt()))   # line 39: Read pet from another dir
+    cfg["climate_dir_flag"] = int(_n1(nxt()))   # line 39: read climate from another dir
     cfg["rockks_flag"]      = int(_n1(nxt()))   # line 40: GEOL Bedrock
     dd = _getnums(nxt(), 4)                     # line 41: SOIL DRYDOWN (0 0.65 -10 0.05)
     cfg["drydown_flag"] = int(dd[0]) if dd else 0
@@ -324,7 +324,8 @@ def read_inp(path: str, nrows: int, ncols: int) -> dict:
 def write_inp(path: str, terrain: dict) -> None:
     """Write a BCM Daily terrain .inp (inverse of read_inp).
 
-    45 tokens per cell plus a trailing 0. ridge[:,:,0] is not written.
+    45 tokens per cell plus a trailing 0, matching the Mokelumne deck.
+    ridge[:,:,0] is not written (Fortran RIDGE(0) is implied 0).
     """
     elev = terrain["elev"]
     nrows, ncols = elev.shape

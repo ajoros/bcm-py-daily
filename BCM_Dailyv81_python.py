@@ -184,8 +184,9 @@ def compute_solar_pet(dn: int, hstep: int, cfg: dict, terrain: dict,
     sum_pet = np.zeros_like(lat_rad)
 
     for lst in range(1, 25, hstep):
-        # Time correction (std = lon for California run)
-        STD = lon
+        # v86: STD is the control-file meridian (YAML timezone), degrees.
+        # v81 overwrote this with cell longitude, which zeroed the shift.
+        STD = float(cfg.get("std", -120.0))
         CF  = (4 * (STD - lon) + ET) / 60.0
         T   = lst + CF
         HA  = 15.0 * (T - 12.0) * DR
@@ -472,6 +473,14 @@ def snow_step(dn: int, ppt: np.ndarray, tmax: np.ndarray, tmin: np.ndarray,
     }
 
 
+def soil_drydown(aridity: np.ndarray, a: float, b: float, c: float,
+                  nodata: float) -> np.ndarray:
+    """a*exp(b*aridity)+c. Nodata cells stay 0 so exp() is not fed the nodata value."""
+    safe = np.where(aridity == nodata, 0.0, aridity)
+    factor = a * np.exp(b * safe) + c
+    return np.where(aridity == nodata, 0.0, factor)
+
+
 # ============================================================================
 # SOIL WATER BALANCE (vectorised)
 # ============================================================================
@@ -710,33 +719,44 @@ def main():
     #                        initial/spatial field matches the Fortran exe.
     #   BCM_OUT_DIR        : write outputs here instead of next to this script.
     RESEED_DIR = os.environ.get("BCM_RESEED_STR_DIR")
-    OUT_DIR    = os.environ.get("BCM_OUT_DIR", HERE)
-    os.makedirs(OUT_DIR, exist_ok=True)
     print("=" * 60)
     print("BCM Daily v8.1 — Python port")
     if RESEED_DIR:
         print(f"  [DIAG] reseeding prior_str daily from: {RESEED_DIR}")
     print("=" * 60)
 
-    # ── parse control file ──────────────────────────────────────────────────
-    ctl = os.environ.get(
-        "BCM_CTL",
-        os.path.join(
-            os.environ.get("BCM_INDIR", os.path.join(HERE, "..", "BCM_testrun_original")),
-            "BCM_Dailyv81.ctl",
-        ),
-    )
-    indir = os.environ.get("BCM_INDIR", os.path.join(HERE, "..", "BCM_testrun_original"))
-    print(f"\nReading control file: {ctl}")
-    cfg = parse_ctl(ctl)
+    # ── run.yaml (preferred) or legacy Fortran .ctl ─────────────────────────
+    cfg_path = os.environ.get("BCM_CONFIG")
+    if cfg_path:
+        from bcm_config import load_run
+        cfg, indir, yaml_out = load_run(cfg_path)
+        os.environ["BCM_INDIR"] = indir
+        OUT_DIR = os.environ.get("BCM_OUT_DIR", yaml_out)
+        print(f"\nReading run file: {cfg_path}")
+    else:
+        ctl = os.environ.get(
+            "BCM_CTL",
+            os.path.join(
+                os.environ.get("BCM_INDIR", os.path.join(HERE, "..", "BCM_testrun_original")),
+                "BCM_Dailyv81.ctl",
+            ),
+        )
+        indir = os.environ.get("BCM_INDIR", os.path.join(HERE, "..", "BCM_testrun_original"))
+        OUT_DIR = os.environ.get("BCM_OUT_DIR", HERE)
+        print(f"\nReading control file: {ctl}")
+        cfg = parse_ctl(ctl)
+        if int(cfg.get("climate_dir_flag") or 0) == 1 and cfg.get("climate_dir_path"):
+            cfg["climate_dir"] = cfg["climate_dir_path"]
+        else:
+            cfg["climate_dir"] = indir
+    os.makedirs(OUT_DIR, exist_ok=True)
     # ── Calibration knobs (defaults preserve current behaviour) ──────────────
     # Exposed for the validation harness to sweep the open-items (see
     # Calibration_OpenItems_Memo_2026-07-09.md). None of these change defaults.
     cfg["pt_alpha"] = float(os.environ.get("BCM_PT_ALPHA", "1.26"))   # PET alpha (f90 varalpha=1.26)
     if os.environ.get("BCM_RCHRUN_DISABLE", "0") == "1":             # RCH/RUN scaler
         cfg["rchrun_flag"] = 0
-    # SNOW=0: use snowaccum/mfmax/mfmin maps (Fortran .f90 always reads the maps).
-    cfg["snow_flag"] = 0
+    # snow_flag comes from the control file or run.yaml (0 = snow maps).
     if cfg["pt_alpha"] != 0.95 or not cfg["rchrun_flag"]:
         print(f"  [DIAG] pt_alpha={cfg['pt_alpha']}, rchrun_flag={cfg['rchrun_flag']}")
     print(f"  snow_flag={cfg['snow_flag']} (0=maps)")
@@ -769,8 +789,7 @@ def main():
     _, basin_grid    = read_asc(p(cfg["areafile"]))
     print("  Static grids loaded.")
 
-    # snow_flag=1 would replace maps with CTL scalars (1.5 / 1.8 / 0.1).
-    # Forced off above so we stay on maps, same as Fortran.
+    # snow: scalar in run.yaml replaces the three snow grids with the scalars.
     if cfg["snow_flag"]:
         snowaccum_map = np.full_like(dem, cfg["snowaccum_t"])
         mfmax_map     = np.full_like(dem, cfg["maxmf"])
@@ -804,6 +823,16 @@ def main():
     # terrain decks (e.g. a Skyview-regenerated .inp) can be tested without
     # touching the reference inputs.
     inp_path = os.environ.get("BCM_INP_FILE", p(cfg["inpfile"]))
+    if not os.path.exists(inp_path):
+        bbox = cfg.get("bbox")
+        if not bbox:
+            raise SystemExit(
+                f"terrain file missing: {inp_path}\n"
+                "Add terrain.inp or a bbox: (west/east/south/north) in the run yaml."
+            )
+        from bcm_terrain import build_from_box
+        print(f"  Building terrain from DEM → {inp_path}")
+        build_from_box(p(cfg["demfile"]), inp_path, **bbox)
     terrain = read_inp(inp_path, nrows, ncols)
 
     # ── pre-compute per-cell monthly atmospheric parameters ─────────────────
@@ -949,15 +978,17 @@ def main():
             if ppt_list is not None:
                 ppt = ppt_list[i]
             else:
-                _, ppt = read_asc(p(day_filename("ppt", yn, dn)))
+                _, ppt = read_asc(os.path.join(cfg["climate_dir"], day_filename("ppt", yn, dn)))
             if tmax_list is not None:
                 tmax = tmax_list[i].copy()
                 tmin = tmin_list[i].copy()
             else:
-                _, tmax = read_asc(p(day_filename("tmx", yn, dn)))
-                _, tmin = read_asc(p(day_filename("tmn", yn, dn)))
+                _, tmax = read_asc(os.path.join(cfg["climate_dir"], day_filename("tmx", yn, dn)))
+                _, tmin = read_asc(os.path.join(cfg["climate_dir"], day_filename("tmn", yn, dn)))
             if not skip_pet:
-                read_asc(p(day_filename("pet", yn, dn)))
+                _petp = p(day_filename("pet", yn, dn))
+                if os.path.exists(_petp):
+                    read_asc(_petp)
             swap = (tmin != nodata) & (tmax != nodata) & (tmin >= tmax)
             tmax = np.where(swap, tmin + 5.0, tmax)
             if RESEED_DIR:
@@ -984,10 +1015,16 @@ def main():
                 prior_pack, prior_ati, prior_hdi, prior_mwt,
                 snowaccum_map, mfmax_map, mfmin_map, cfg, sumrad, nodata
             )
+            drydown = None
+            if cfg.get("drydown_flag"):
+                _, arid = read_asc(p(cfg["aridityfile"]))
+                drydown = soil_drydown(
+                    arid, cfg["drydown_a"], cfg["drydown_b"], cfg["drydown_c"], nodata)
             wb = water_balance(
                 ppt, snow_out["meltday"], snow_out["snowfall"],
                 petday, prior_str, soild_eff, wpmm, fcmm, pormm, geolks,
                 kfac_day, nodata, cfg["rchrun_flag"], cfg["rchrun_limit"],
+                drydown=drydown,
                 soil_nd=soil_nd, imperv=imperv,
                 zero_ks=zero_ks, water_veg=water_veg,
                 imperv_release=imperv_release,

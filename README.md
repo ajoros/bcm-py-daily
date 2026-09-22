@@ -8,6 +8,63 @@ Model (BCMv8). Public research software.
 
 **This is not a USGS product and is not endorsed by the USGS.**
 
+## Quick start
+
+A first run uses Python only: `run.yaml`, the grids you put in `domain/`,
+and the lookup tables shipped in `bcm_tables/`. You do not need a Fortran
+compiler, a `.ctl` file, or a compiled BCM executable.
+
+**Windows (PowerShell)**
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+py -m pip install -r requirements.txt
+py -m bcm check run.yaml
+py -m bcm run run.yaml
+```
+
+**macOS / Linux**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m bcm check run.yaml
+python -m bcm run run.yaml
+```
+
+`check` lists anything still missing. On a fresh clone, `domain/` is empty,
+so `check` will name the grids you have not copied in yet. That is the
+setup list, not a broken install.
+
+### Set up your watershed
+
+1. Open `run.yaml`. Set `start` and `end`. Leave the keys on the left as
+   they are. Put your filenames on the right.
+2. Copy your grids into `domain/`. Every map must match the DEM: same
+   rows, columns, and cell size. `geology.csv` and `vegetation.csv` are
+   already in `bcm_tables/`. Renaming `geology.asc` or `vegetation.asc`
+   does not rename those tables. The grid id joins to the table id.
+3. Put daily climate in `domain/`, or in another folder and set
+   `climate: ./climate`. One file per day:
+   `pptYYYY_DDD.asc`, `tmnYYYY_DDD.asc`, `tmxYYYY_DDD.asc`
+   (1 Jan 2010 is `ppt2010_001.asc`). Potential evapotranspiration is
+   calculated. Do not add a PET grid.
+4. Leave the shipped switches alone for a first run. `antecedent: false`
+   starts with no snow and initialized soil water. `drydown: off` does
+   not need an aridity map. `ingest: off` ignores the example file pairs.
+   `rch_run: off` does not move runoff into recharge. Change `rch_run`
+   only during streamflow calibration, or if you have baseflow information.
+5. Run `python -m bcm check run.yaml`, then `python -m bcm run run.yaml`.
+6. Daily maps and `basin.out` are written to `out/`. `print:` in
+   `run.yaml` chooses which maps are written. Snowpack, soil storage, and
+   the other state maps are written either way so the next day can start.
+
+`terrain.inp` is a data file you supply (latitude, longitude, slope,
+aspect, sky view, and horizon angles). This package reads it. It does
+not build it from the DEM.
+
 ---
 
 ## The Basin Characterization Model
@@ -60,7 +117,8 @@ The Fortran BCM remains the USGS authors’ model. This repository is DRI /
 collaborator software that runs that method in Python. It is not an official
 USGS software release.
 
-Run `BCM_Dailyv81_python.py` after pointing it at your own BCM Daily inputs.
+Run `python -m bcm run run.yaml` after you have filled in that file and
+copied your grids into `domain/`.
 
 ---
 
@@ -72,9 +130,9 @@ computed.
 
 ```mermaid
 flowchart TD
-  start[Set BCM_INDIR, BCM_CTL, BCM_OUT_DIR] --> ctl[Parse control file]
+  start[Read run.yaml] --> ctl[Dates, layers, and switches]
   ctl --> static[Load static maps: DEM, soils, geology, veg, snow factors]
-  static --> terr[Terrain .inp: read or build from DEM]
+  static --> terr[Read existing terrain .inp]
   terr --> idw[Precompute monthly atmosphere by IDW]
   idw --> soil[Soil capacities from depth, WP, FC, porosity]
   soil --> prior{Antecedent on?}
@@ -83,7 +141,7 @@ flowchart TD
   init --> loop
   load --> loop
 
-  subgraph daily [Each day in the CTL window]
+  subgraph daily [Each day from start to end]
     loop[Read ppt, tmn, tmx] --> pet[Solar radiation and PET]
     pet --> snow[Snow-17: rain/snow split, pack, melt, sublimation]
     snow --> wb[Soil water balance]
@@ -121,27 +179,29 @@ flowchart TD
   style daily fill:#f3efe6,stroke:#8a7355,color:#3d3428
 ```
 
-**Once at start.** The CTL sets dates, print flags, lookup tables, and
-whether to restart from yesterday’s state. Static layers and the terrain
-file define the grid. The terrain `.inp` is lat, lon, elevation, slope,
-aspect, sky-view, and 36 horizon angles. Existing domains can keep the
-file they already have. A new domain builds it in Python from the DEM
-(`bcm_terrain.py`) — no Fortran. Monthly precipitable water, turbidity,
-and albedo are interpolated to each cell. Soil field capacity, wilting
-point, and porosity are depths in mm. Bedrock Ks comes from the geology
-table.
+**Once at start.** `run.yaml` sets the dates, which maps to write, and
+whether to restart from yesterday’s state. Static layers and `terrain.inp`
+define the grid. Monthly precipitable water, turbidity, and albedo are
+interpolated to each cell. Soil field capacity, wilting point, and
+porosity are depths in mm. Bedrock conductivity comes from `geology.csv`.
+Actual evapotranspiration demand is PET times the vegetation k-factor for
+that day (`vegetation.csv`). Root depth from that table is added to soil
+depth. Leaf area stays at 1.
 
 **Each day.**
 
-1. **Climate** — precipitation, Tmin, Tmax (same files Fortran uses).
+1. **Climate** — precipitation, Tmin, Tmax.
 2. **PET** — hourly solar with topographic shading and cloudiness;
-   Priestley–Taylor PET for the day.
+   Priestley–Taylor PET for the day. The model calculates this.
 3. **Snow** — rain vs snow from temperature vs the accumulation map;
    SNOW-17 pack, heat deficit, liquid tank, melt, sublimation.
+   Sublimation uses the PET equation unless you turn that switch on.
 4. **Soil** — storage gets rain + melt − snow. Excess water goes to AET,
    then recharge (capped by bedrock Ks) or runoff. CWD is PET − AET.
-5. **Write** — maps whose CTL flags are on, plus state maps for the next
-   day, and one basin-average line in the text summary.
+   With `drydown: on`, storage below wilting point is reduced using the
+   aridity map.
+5. **Write** — the maps named in `print:`, plus state maps for the next
+   day, and one basin-average line in `basin.out`.
 
 States that carry forward: snowpack, pack liquid, ATI, HDI, soil
 storage, LAI.
@@ -222,10 +282,11 @@ the difference maps sit at write noise.
 ![Spatial snowpack and melt](docs/validation/spatial_snow.png)
 
 Recharge and runoff maps match in pattern. The small, widespread
-difference (about +0.3 mm recharge / −0.3 mm runoff) is an optional
-control-file **recharge/runoff switch** that Python applies and this
-Fortran source does not. Turn that switch off in the CTL for a tighter
-match. It is not a snow-physics miss.
+difference (about +0.3 mm recharge / −0.3 mm runoff) is `rch_run` in
+`run.yaml`. The shipped file leaves it `off`. A number moves that many
+millimeters per day from runoff into recharge after bedrock K has capped
+recharge. The Fortran source used in this comparison does not apply that
+shift. It is not a snow-physics miss.
 
 ![Spatial recharge and runoff](docs/validation/spatial_flow.png)
 
@@ -241,12 +302,10 @@ from, not a claim of bit-identity with every compiled BCM executable.
 
 ## Installation
 
-You need **Python 3.10+** and a BCM Daily input folder (control file,
-static input layers, daily climate grids, and a terrain `.inp`).
-Climate and input grids must match the extent, projection, and grid
-cell resolution of the DEM exactly. This repo does not ship a domain.
-If you do not already have a terrain `.inp`, build it from the DEM
-with `bcm_terrain.py`. You do not need Fortran, the Windows BCM
+You need **Python 3.10+**. Climate and input grids must match the DEM
+(same rows, columns, and cell size). `domain/` and `out/` are empty
+folders in the repository. This package does not build `terrain.inp`
+from a DEM. You do not need Fortran, a control file, the Windows BCM
 executable, or conda.
 
 ```bash
@@ -274,77 +333,51 @@ Leave the environment with `deactivate`. Confirm with
 
 ## Usage
 
-Point the script at **your** BCM Daily inputs. Paths are environment
-variables; the control file (`.ctl`) sets dates, print flags, and
-whether to start from prior state.
-
-**Windows (PowerShell)**
-
-```powershell
-$env:BCM_INDIR   = "C:\path\to\your\bcm_inputs"
-$env:BCM_CTL     = "$env:BCM_INDIR\BCM_Dailyv81.ctl"
-$env:BCM_OUT_DIR = "C:\path\to\output"
-python BCM_Dailyv81_python.py
-```
-
-**macOS / Linux**
+Edit `run.yaml`, then:
 
 ```bash
-export BCM_INDIR=/path/to/your/bcm_inputs
-export BCM_CTL=$BCM_INDIR/BCM_Dailyv81.ctl
-export BCM_OUT_DIR=/path/to/output
-python BCM_Dailyv81_python.py
+python -m bcm check run.yaml
+python -m bcm run run.yaml
 ```
 
-Always set `BCM_INDIR` and `BCM_OUT_DIR`. If `BCM_CTL` is omitted, the
-script looks for `BCM_Dailyv81.ctl` inside `BCM_INDIR`. Output folders
-are created if missing.
+`check` reads the YAML and reports missing files. `run` refuses to start
+while `check` still reports a missing grid. Paths in the YAML are relative
+to the YAML file. `domain:` is the folder of static grids. `climate:` is
+the folder of daily precipitation and temperature. `output:` is where maps
+are written (`./out` in the shipped file).
 
-### Build the terrain `.inp`
+### What you edit in `run.yaml`
 
-The daily model needs one terrain file (lat, lon, slope, aspect,
-sky-view, 36 horizon angles). If you do not already have that file,
-build it from the project DEM:
+| Key | What to set |
+|---|---|
+| `start`, `end` | First and last day (`YYYY-MM-DD`) |
+| `domain`, `climate`, `output` | Folders. Climate defaults to `./domain`. Use `./climate` if those files live somewhere else |
+| `layers:` | Your filenames. The comment on each line says what the grid is |
+| `antecedent` | `false` for a new run. `true` only if the day before `start` is already in the domain folder |
+| `initial_soil` | Starting soil water as a fraction of (field capacity − wilting point). Shipped value is `0.9` |
+| `timezone` | Standard meridian in degrees longitude. California is `-120` |
+| `print` | Which daily maps to write |
+| `flags` | Leave the shipped values for a first run. Notes are on each line |
 
-```bash
-python bcm_terrain.py dem.asc -o terrain.inp \
-  --west -121.67 --east -119.70 --south 38.03 --north 38.70 \
-  --left -145265.8 --right 26184.2 --top 77206.7 --bottom 1876.7
-```
+### Grids you put in `domain/`
 
-`--west` / `--east` / `--south` / `--north` are geographic corners.
-`--left` / `--right` / `--top` / `--bottom` are the same box in the
-DEM’s projected units (cell size and origin come from the DEM header).
-`--radius` is the horizon search distance in those units (default
-75000). A DEM with a buffer around the domain is better for sky-view.
+ESRI ASCII (`.asc`), same rows, columns, and cell size as the DEM.
+Filenames are whatever you wrote under `layers:`.
 
-Or pass the eight numbers in a text file (`west east north south left
-right top bottom`, one value per line or the first token on each line):
+| Role | What it is |
+|---|---|
+| `dem` | Elevation, meters |
+| `soil_depth`, `wilting_point`, `field_capacity`, `porosity` | Soil |
+| `geology` | Geology id. Joins to `geology.csv` |
+| `vegetation` | Vegetation id. Joins to `vegetation.csv` |
+| `bc_a`, `bc_b`, `bc_c` | Bristow–Campbell transmissivity |
+| `pt_alpha` | Priestley–Taylor alpha map. PET still uses 1.26 |
+| `snow_accum`, `mfmax`, `mfmin` | Snow maps. Used when `snow: maps` |
+| `basins` | Basin id for the summary table |
+| `terrain` | `terrain.inp`: latitude, longitude, slope, aspect, sky view, horizons |
+| `aridity` | Only when `drydown: on` |
 
-```bash
-python bcm_terrain.py dem.asc -o terrain.inp --box-file box.txt
-```
-
-Put the output name in the CTL `inpfile` line. Self-check:
-`python bcm_terrain.py --check`.
-
-### Inputs
-
-Use the same kind of folder you would use for a Fortran BCM Daily run.
-Names in the CTL are file names (not full paths) and are read from
-`BCM_INDIR`. All rasters should be ESRI ASCII (`.asc`) on the **same
-grid** as the DEM.
-
-**Always**
-
-- Control file: start/end day-of-year and year, print flags, lookup
-  tables, antecedent on/off
-- Static maps: topography, soils, geology, vegetation, and the snow /
-  radiation layers named in the CTL
-- Terrain `.inp` named in the CTL (lat, lon, elevation, sky-view,
-  horizon angles). Build it with `bcm_terrain.py` if you do not
-  already have one.
-- Daily climate for every day in the window:
+Daily climate, in the `climate` folder, for every day from `start` through `end`:
 
 | File | Meaning |
 |---|---|
@@ -352,41 +385,54 @@ grid** as the DEM.
 | `tmnYYYY_DDD.asc` | minimum air temperature (°C) |
 | `tmxYYYY_DDD.asc` | maximum air temperature (°C) |
 
-`DDD` is day-of-year, three digits (`001`–`365` or `366`). Runs may
+`DDD` is day-of-year, three digits (`001`–`365` or `366`). A run may
 cross 1 January.
 
-**If antecedent is on** in the CTL, also provide the previous day’s
-state maps in the same folder (snowpack, soil storage, ATI, HDI, LAI). 
-If antecedent is off, the run starts with no snow and initialized soil water.
+With `antecedent: true`, also put the previous day’s state maps in the
+domain folder (snowpack, soil storage, ATI, HDI, LAI). With
+`antecedent: false`, the run starts with no snow and initialized soil water.
+
+### Switches worth knowing
+
+The comments in `run.yaml` are the full list. For a first watershed,
+leave them as shipped.
+
+- `rch_run: off` keeps recharge and runoff as the soil routine computed
+  them. A number, such as `0.300`, moves up to that many millimeters per
+  day from runoff into recharge. Change it only for streamflow
+  calibration, or if you have baseflow information.
+- `drydown: on` reads `layers.aridity` and dries the soil below wilting
+  point with `a*exp(b*aridity)+c`.
+- `ingest: off` ignores `ingest_files`. `swe`, `str`, or `lai` means you
+  are replacing snowpack, soil storage, or leaf area. The left name is
+  the model file. The right name is the grid you supply, in `domain/`.
+- `pt_modified`, `urban`, and `rain_fraction` are recorded. They do not
+  change the water balance in this version. Leave them `off`.
+- `sublimation: off` uses the equation that relates PET and sublimation.
+  That is the calculation the run performs.
 
 ### Outputs
 
-Written to `BCM_OUT_DIR`:
+Written to the `output` folder:
 
-- A text basin summary (name from the CTL): daily averages of precip,
-  PET, snow, melt, storage, recharge, runoff, and related terms
-- Daily ASCII maps for each variable whose print flag is on, plus the
-  usual state maps (pack, storage, and related)
+- `basin.out` (or the name in `outfile`): one line per day of basin
+  averages for precipitation, PET, snow, melt, storage, recharge, runoff,
+  and related terms
+- Daily ASCII maps for each name in `print:`, plus state maps (pack,
+  storage, and related) for the next day
 
 Maps use the same `varYYYY_DDD.asc` naming as the climate inputs.
 
-### Environment variables
-
-| Variable | Meaning |
-|---|---|
-| `BCM_INDIR` | Input folder (required) |
-| `BCM_CTL` | Control file (default: `BCM_Dailyv81.ctl` in the input folder) |
-| `BCM_OUT_DIR` | Output folder (recommended) |
-| `BCM_QUIET` | Set to `1` to skip per-day console lines |
+Set `BCM_QUIET` to `1` to skip the per-day console lines.
 
 ### Checklist
 
-1. Put a BCM Daily CTL and input grids in one folder. Build the
-   terrain `.inp` from the DEM if you do not already have it.
-2. Set the CTL dates to days you have precip and temperature for.
-3. Turn on the map flags you want; set antecedent on or off.
-4. Activate the venv, set the three path variables, run the script.
-5. Open the text summary for basin averages; open `*.asc` maps in a GIS.
+1. Activate the virtual environment and `pip install -r requirements.txt`.
+2. Set dates and filenames in `run.yaml`.
+3. Copy grids into `domain/` and climate files into the climate folder.
+4. `python -m bcm check run.yaml` until it prints `ok`.
+5. `python -m bcm run run.yaml`.
+6. Open `out/basin.out` for basin averages and the `*.asc` maps in a GIS.
 
 Runtime scales with grid size and number of days. A large regional grid
 needs several GB of RAM.
@@ -395,12 +441,26 @@ needs several GB of RAM.
 
 | Symptom | Likely cause |
 |---|---|
-| Control file not found | `BCM_INDIR` or `BCM_CTL` is wrong or has tabs |
-| A climate file not found | CTL window includes a day you do not have, or `DDD` is not three digits |
-| A state file not found at start | Antecedent is on, but the previous day’s maps are missing |
+| `check` says domain folder not found | `domain:` in `run.yaml` does not point at a folder |
+| A climate file not found | `start`/`end` includes a day you do not have, or `DDD` is not three digits |
+| A layer file not found | The filename under `layers:` is not in `domain/` |
+| A state file not found at start | `antecedent: true`, but the previous day’s maps are missing |
+| Ingest replacement missing | `ingest` is `swe`, `str`, or `lai` and the right-hand file is not in `domain/` |
 | Array shape error | One layer is not the same `nrows` × `ncols` as the DEM |
-| `bcm_terrain.py` missing box | Need `--west`…`--bottom` or `--box-file` |
-| `numpy` import error | Virtual environment not active |
+| `numpy` import error | Virtual environment not active, or `pip install -r requirements.txt` was not run |
+
+### If you already have a Fortran control file
+
+You do not need one to start. If you have one and want the same filenames
+written into a YAML, this copies them. It does not run Fortran.
+
+```bash
+python -m bcm import-ctl path/to/BCM_Dailyv81.ctl -o run.yaml
+```
+
+Read the new `run.yaml` before you run. The shipped defaults (`rch_run: off`,
+`drydown: off`) are the first-run settings. An imported file keeps the
+switches that were in the control file.
 
 ---
 
@@ -414,13 +474,12 @@ needs several GB of RAM.
 No compiled extensions and no USGS binaries. The model is the Python
 standard library plus NumPy.
 
-**You provide (not installed by pip):** ASCII grids and a CTL in the BCM
-Daily layout. Same class of climate inputs: precipitation, minimum and
-maximum air temperature, plus soils, geology, and topography. The
-terrain `.inp` can be built from the DEM with `bcm_terrain.py`.
+**You provide (not installed by pip):** the grids named in `run.yaml`
+(soils, geology, vegetation, topography, terrain, and daily precipitation
+and temperature). `geology.csv` and `vegetation.csv` ship with the package.
 
-**You do not need:** a compiled BCM executable, a Fortran compiler, or
-pandas.
+**You do not need:** a `.ctl` file, a compiled BCM executable, a Fortran
+compiler, or pandas.
 
 ---
 
