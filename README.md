@@ -133,8 +133,7 @@ flowchart TD
   start[Read run.yaml] --> ctl[Dates, layers, and switches]
   ctl --> static[Load static maps: DEM, soils, geology, veg, snow factors]
   static --> terr[Read existing terrain .inp]
-  terr --> idw[Precompute monthly atmosphere by IDW]
-  idw --> soil[Soil capacities from depth, WP, FC, porosity]
+  terr --> soil[Soil capacities from depth, WP, FC, porosity]
   soil --> prior{Antecedent on?}
   prior -->|no| init[Zero snow; initialize soil water]
   prior -->|yes| load[Read prior pack, liquid, ATI, HDI, storage, LAI]
@@ -156,7 +155,6 @@ flowchart TD
   classDef sand fill:#e8dcc8,stroke:#6b5344,color:#2c2416
   classDef rock fill:#c4b59a,stroke:#5c4a32,color:#2c2416
   classDef soil fill:#c4a574,stroke:#5c4033,color:#2c2416
-  classDef sage fill:#9aaa78,stroke:#3d4a32,color:#1a1f14
   classDef ochre fill:#d4a017,stroke:#6b4f1d,color:#2c2416
   classDef rain fill:#7a9e9a,stroke:#2f4a48,color:#f4efe6
   classDef sun fill:#e0b35a,stroke:#8a5a20,color:#2c2416
@@ -167,7 +165,6 @@ flowchart TD
 
   class start,ctl sand
   class static,terr rock
-  class idw sage
   class soil,init,load soil
   class prior,more ochre
   class loop rain

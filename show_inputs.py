@@ -1,8 +1,14 @@
+import os
 import sys
-sys.path.insert(0, r'D:\Dropbox\BCM_SST\BCM_testrun_python_v1')
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 from bcm_io import parse_ctl
 
-cfg = parse_ctl(r'D:\Dropbox\BCM_SST\BCM_testrun_original\BCM_Dailyv81.ctl')
+ctl = os.path.normpath(os.path.join(HERE, "..", "BCM_testrun_original", "BCM_Dailyv81.ctl"))
+if not os.path.isfile(ctl):
+    sys.exit(f"Fortran control file not next to this package: {ctl}")
+cfg = parse_ctl(ctl)
 
 print('=== KEY PARAMETERS (read from the SAME CTL file by both) ===')
 params = [

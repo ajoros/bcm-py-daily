@@ -4,11 +4,14 @@ Compares Python (BCM_testrun_python_v1) vs Fortran (BCM_testrun_original)
 output .asc grids cell-by-cell and prints a summary table.
 """
 import os, sys, numpy as np
-sys.path.insert(0, r'D:\Dropbox\BCM_SST\BCM_testrun_python_v1')
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 from bcm_io import read_asc
 
-PY   = r'D:\Dropbox\BCM_SST\BCM_testrun_python_v1'
-FORT = r'D:\Dropbox\BCM_SST\BCM_testrun_original'
+# This folder holds the Python maps. The Fortran maps sit next to it.
+PY   = HERE
+FORT = os.path.normpath(os.path.join(HERE, "..", "BCM_testrun_original"))
 
 # prefixes that exist in both runs
 VARS = ['aet','cwd','hdi','mwt','pck','pet','rad','rch','run','rvs','smd','smr','snw','str','ati']
