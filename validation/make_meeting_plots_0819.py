@@ -8,13 +8,15 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+PKG = os.path.normpath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
+sys.path.insert(0, PKG)
 from bcm_io import read_asc
 from validate import parse_out
 
-FORT = os.path.normpath(os.path.join(HERE, "..", "BCM_testrun_original"))
+FORT = os.path.normpath(os.path.join(PKG, "..", "BCM_testrun_original"))
 PY = os.environ.get("BCM_PY_DIR", os.path.join(os.environ.get("TEMP", ""), "bcm_snowmaps_0819"))
-OUT = os.path.normpath(os.path.join(HERE, "..", "08192026meetingplots"))
+OUT = os.path.normpath(os.path.join(PKG, "..", "08192026meetingplots"))
 os.makedirs(OUT, exist_ok=True)
 ND = -9999.0
 TOL = 0.01

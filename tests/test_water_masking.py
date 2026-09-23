@@ -9,15 +9,15 @@ The Fortran (BCM_Dailyv81.f90) masks water two independent ways:
       run/rch/aet forced to 0 (L2067-2072).
   (2) WHR vegetation "Water" (id 57): every soil/snow term zeroed (L2073-2085).
 
-Run directly:   python test_water_masking.py
-Or with pytest: pytest test_water_masking.py
+Run directly:   python tests/test_water_masking.py
+Or with pytest: pytest tests/test_water_masking.py
 """
 import os
 import sys
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..")))
 from BCM_Dailyv81_python import water_balance  # noqa: E402
 
 NODATA = -9999.0

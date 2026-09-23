@@ -9,4 +9,4 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-      - run: python test_bcm_config.py
+      - run: python tests/test_bcm_config.py

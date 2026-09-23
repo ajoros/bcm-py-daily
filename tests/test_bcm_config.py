@@ -3,7 +3,8 @@ from pathlib import Path
 import sys
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+PKG = HERE.parent
+sys.path.insert(0, str(PKG))
 from bcm_config import load_run, load_simple_yaml, load_tables, TABLES
 
 rockks, veg = load_tables(TABLES)
@@ -38,7 +39,7 @@ assert cfg["demfile"] == "dem.asc"
 assert Path(indir).name == "domain"
 assert Path(outdir).name == "out"
 
-shipped, shipped_dir, _ = load_run(HERE / "run.yaml")[:3]
+shipped, shipped_dir, _ = load_run(PKG / "run.yaml")[:3]
 assert shipped["rchrun_flag"] == 0 and shipped["solar_flag"] == 1
 assert shipped["snow_flag"] == 0
 assert shipped["maf"] == 7.0 and shipped["tipm"] == 0.1 and shipped["nmf"] == 0.21
@@ -60,8 +61,8 @@ assert shipped["ingest_pairs"] == [
 assert Path(shipped["climate_dir"]) == Path(shipped_dir)
 
 from bcm_config import check_run
-assert not any("aridity" in p for p in check_run(HERE / "run.yaml"))
-assert not any("ingest replacement" in p for p in check_run(HERE / "run.yaml"))
+assert not any("aridity" in p for p in check_run(PKG / "run.yaml"))
+assert not any("ingest replacement" in p for p in check_run(PKG / "run.yaml"))
 
 with TemporaryDirectory() as td:
     yp = Path(td) / "run.yaml"
@@ -71,7 +72,7 @@ with TemporaryDirectory() as td:
     assert Path(cfg["climate_dir"]) != Path(indir)
 
 # Same driver knobs as parse_ctl when the Fortran CTL is on disk (local, not GitHub).
-ctl = HERE.parent / "BCM_testrun_original" / "BCM_Dailyv81.ctl"
+ctl = PKG.parent / "BCM_testrun_original" / "BCM_Dailyv81.ctl"
 if ctl.is_file():
     from tempfile import TemporaryDirectory
     from bcm_config import import_ctl

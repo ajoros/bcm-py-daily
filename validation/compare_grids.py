@@ -6,12 +6,13 @@ output .asc grids cell-by-cell and prints a summary table.
 import os, sys, numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+PKG = os.path.normpath(os.path.join(HERE, ".."))
+sys.path.insert(0, PKG)
 from bcm_io import read_asc
 
-# This folder holds the Python maps. The Fortran maps sit next to it.
-PY   = HERE
-FORT = os.path.normpath(os.path.join(HERE, "..", "BCM_testrun_original"))
+# Python maps live in the package folder. Fortran maps sit next to that package.
+PY   = PKG
+FORT = os.path.normpath(os.path.join(PKG, "..", "BCM_testrun_original"))
 
 # prefixes that exist in both runs
 VARS = ['aet','cwd','hdi','mwt','pck','pet','rad','rch','run','rvs','smd','smr','snw','str','ati']

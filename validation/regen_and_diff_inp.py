@@ -17,10 +17,12 @@ Usage:
 import os, sys, shutil, subprocess, argparse
 import numpy as np
 
-HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
+HERE = os.path.dirname(os.path.abspath(__file__))
+PKG = os.path.normpath(os.path.join(HERE, ".."))
+sys.path.insert(0, PKG)
 from bcm_io import read_asc, read_inp
 
-ROOT    = os.path.normpath(os.path.join(HERE, ".."))
+ROOT    = os.path.normpath(os.path.join(PKG, ".."))
 SOLAR   = os.path.join(ROOT, "SolarFilesFromMichelle", "Solar_mok_extracted")
 WORKDIR = os.path.join(ROOT, "SolarFilesFromMichelle", "_skyview_clean")
 CUR_INP = os.path.join(ROOT, "BCM_testrun_original", "mok_270m.inp")

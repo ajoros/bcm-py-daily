@@ -11,14 +11,16 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
 
-HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
+HERE = os.path.dirname(os.path.abspath(__file__))
+PKG = os.path.normpath(os.path.join(HERE, ".."))
+sys.path.insert(0, PKG)
 from bcm_io import read_asc
-# Fortran (.exe) reference grids; Python grids default to HERE but can be
+# Fortran (.exe) reference grids; Python grids default to the package folder but can be
 # pointed at a fresh run dir via BCM_PY_DIR (keeps this cross-platform).
 FORT = os.environ.get("BCM_FORT_DIR",
-                      os.path.normpath(os.path.join(HERE, "..", "BCM_testrun_original")))
-PY   = os.environ.get("BCM_PY_DIR", HERE)
-OUT  = os.path.join(HERE, "validation_plots"); os.makedirs(OUT, exist_ok=True)
+                      os.path.normpath(os.path.join(PKG, "..", "BCM_testrun_original")))
+PY   = os.environ.get("BCM_PY_DIR", PKG)
+OUT  = os.path.join(PKG, "validation_plots"); os.makedirs(OUT, exist_ok=True)
 ND   = -9999.0
 
 def load(folder, var, day):

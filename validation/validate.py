@@ -25,12 +25,13 @@ import datetime as _dt
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+PKG = os.path.normpath(os.path.join(HERE, ".."))
+sys.path.insert(0, PKG)
 from bcm_io import read_asc  # noqa: E402
 
 NODATA = -9999.0
-MODEL  = os.path.join(HERE, "BCM_Dailyv81_python.py")
-DEFAULT_REF = os.path.normpath(os.path.join(HERE, "..", "BCM_testrun_original"))
+MODEL  = os.path.join(PKG, "BCM_Dailyv81_python.py")
+DEFAULT_REF = os.path.normpath(os.path.join(PKG, "..", "BCM_testrun_original"))
 
 # Variables worth grading. The calibration open-items live in pet/str/rch/run.
 GRID_VARS = ["pet", "aet", "cwd", "rch", "run", "str", "snw", "rvs",
@@ -210,7 +211,7 @@ def run_model(out_dir: str, env_extra: dict | None = None) -> None:
     env["PYTHONIOENCODING"] = "utf-8"
     if env_extra:
         env.update({k: str(v) for k, v in env_extra.items()})
-    subprocess.run([sys.executable, MODEL], cwd=HERE, env=env,
+    subprocess.run([sys.executable, MODEL], cwd=PKG, env=env,
                    check=True, stdout=subprocess.DEVNULL)
 
 
@@ -338,7 +339,7 @@ def main():
     wb = water_balance_closure(py_out) if os.path.exists(py_out) else {"n": 0}
 
     report_dir = args.report_dir or os.path.join(
-        HERE, "validation_reports",
+        PKG, "validation_reports",
         _dt.datetime.now().strftime("%Y%m%d_%H%M%S"))
     meta = {"when": _dt.datetime.now().isoformat(timespec="seconds"),
             "py_dir": py_dir, "ref_dir": args.ref_dir, "year": args.year,

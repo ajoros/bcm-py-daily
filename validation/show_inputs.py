@@ -2,10 +2,11 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+PKG = os.path.normpath(os.path.join(HERE, ".."))
+sys.path.insert(0, PKG)
 from bcm_io import parse_ctl
 
-ctl = os.path.normpath(os.path.join(HERE, "..", "BCM_testrun_original", "BCM_Dailyv81.ctl"))
+ctl = os.path.normpath(os.path.join(PKG, "..", "BCM_testrun_original", "BCM_Dailyv81.ctl"))
 if not os.path.isfile(ctl):
     sys.exit(f"Fortran control file not next to this package: {ctl}")
 cfg = parse_ctl(ctl)

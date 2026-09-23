@@ -23,7 +23,9 @@ import tempfile
 import datetime as _dt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+PKG = os.path.normpath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
+sys.path.insert(0, PKG)
 import validate as V  # noqa: E402
 
 # (label, env-overrides) — one baseline + one change per open-item.

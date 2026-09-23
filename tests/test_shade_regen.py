@@ -10,16 +10,19 @@ Then runs the port twice -- baseline vs swapped -- and compares pet/aet/cwd to
 the .exe reference. If the swapped shading moves pet/aet toward 1:1, Michelle's
 inputs are the lever; if not, the residual is in the daily radiation code.
 
-Run:  python test_shade_regen.py
+Run:  python tests/test_shade_regen.py
 """
 import os, sys, tempfile
 import numpy as np
 
-HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
+HERE = os.path.dirname(os.path.abspath(__file__))
+PKG = os.path.normpath(os.path.join(HERE, ".."))
+sys.path.insert(0, PKG)
+sys.path.insert(0, os.path.join(PKG, "validation"))
 from bcm_io import read_asc
 from validate import run_model, compare_grids, DEFAULT_REF
 
-ROOT = os.path.normpath(os.path.join(HERE, ".."))
+ROOT = os.path.normpath(os.path.join(PKG, ".."))
 WORK = os.path.join(ROOT, "SolarFilesFromMichelle", "_skyview_clean")
 ORIG_INP = os.path.join(DEFAULT_REF, "mok_270m.inp")   # the deck the port uses
 NEW_INP  = os.path.join(WORK, "mok_270m_regen.inp")

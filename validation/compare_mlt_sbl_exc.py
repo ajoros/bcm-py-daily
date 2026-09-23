@@ -3,11 +3,13 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+PKG = os.path.normpath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
+sys.path.insert(0, PKG)
 from validate import compare_out, compare_grids
 
 PY = os.environ.get("BCM_PY_DIR", os.path.join(os.environ.get("TEMP", "/tmp"), "bcm_mlt_sbl_exc"))
-REF = os.environ.get("BCM_FORT_DIR", os.path.normpath(os.path.join(HERE, "..", "BCM_testrun_original")))
+REF = os.environ.get("BCM_FORT_DIR", os.path.normpath(os.path.join(PKG, "..", "BCM_testrun_original")))
 
 
 def main():
